@@ -1,0 +1,113 @@
+# =============================================================================
+#  Inventory Manager Hub — Docker Compose
+#  Modifiez .env pour changer les ports, mots de passe, clés API, etc.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  #  Base de données PostgreSQL (volume persistant)
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-inventory}
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-inventory}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  ## ---------------------------------------------------------------------------
+  #  Migration + Seeding (Recréation des tables et des produits par défaut)
+  # ---------------------------------------------------------------------------
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      target: builder
+    # On enchaîne le push (schéma) ET le seed (données par défaut)
+    command: >
+      sh -c "pnpm --filter @workspace/db push --force && pnpm --filter @workspace/db seed"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-inventory}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  #  API Server (Node.js / Express + Auth + Stripe + Upload)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      target: runtime
+    restart: unless-stopped
+    environment:
+      PORT:         3000
+      NODE_ENV:     production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-inventory}
+      UPLOAD_DIR:   /app/uploads
+      # ── Auth JWT ────────────────────────────────────────────────────────
+      JWT_SECRET:   ${JWT_SECRET:-changez_ce_secret_jwt_en_production}
+      # ── Compte admin créé automatiquement au premier démarrage ──────────
+      ADMIN_EMAIL:    ${ADMIN_EMAIL:-admin@stockflow.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin1234!}
+      ADMIN_NAME:     ${ADMIN_NAME:-Admin}
+      # ── Stripe ──────────────────────────────────────────────────────────
+      STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    volumes:
+      # Volume partagé pour les images uploadées (persistant)
+      - uploads_data:/app/uploads
+    ports:
+      - "${API_PORT:-8080}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  #  Frontend (React/Vite → Nginx + proxy /api et /uploads vers l'API)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_STRIPE_PUBLIC_KEY: ${VITE_STRIPE_PUBLIC_KEY:-pk_test_placeholder}
+    restart: unless-stopped
+    # AJOUT DES VOLUMES ICI <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro  # Charge votre config Nginx
+      - uploads_data:/usr/share/nginx/html/uploads:ro  # Accès aux images en lecture
+    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+# =============================================================================
+#  Volumes persistants
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local

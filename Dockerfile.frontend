@@ -1,0 +1,45 @@
+# =============================================================================
+#  Dockerfile.frontend — Render compatible
+# =============================================================================
+
+FROM node:22-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
+COPY tsconfig.base.json tsconfig.json ./
+
+COPY lib/api-client-react/ lib/api-client-react/
+COPY lib/api-zod/          lib/api-zod/
+COPY artifacts/stockflow/  artifacts/stockflow/
+
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
+
+# VITE_STRIPE_PUBLIC_KEY est injecté au build via --build-arg Docker
+ARG VITE_STRIPE_PUBLIC_KEY=pk_test_placeholder
+ENV NODE_ENV=production \
+    PORT=3000 \
+    BASE_PATH=/ \
+    VITE_STRIPE_PUBLIC_KEY=${VITE_STRIPE_PUBLIC_KEY}
+
+RUN pnpm --filter @workspace/stockflow run build
+
+# ─── Runtime Nginx ────────────────────────────────────────────────────────────
+FROM nginx:1.27-alpine AS runtime
+
+# Installer envsubst pour substituer les variables d'env dans nginx.conf
+RUN apk add --no-cache gettext
+
+COPY --from=builder /app/artifacts/stockflow/dist/public /usr/share/nginx/html
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Script d'entrée pour substituer API_URL et démarrer nginx
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+EXPOSE 80
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]

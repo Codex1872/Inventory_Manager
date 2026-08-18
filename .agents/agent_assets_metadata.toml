@@ -1,0 +1,62 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Gf4MCRVS6jZauCJy1Se45"
+uri = "file://artifacts/stockflow/public/images/store-hero.png"
+type = "image"
+title = "Warm modern retail store interior"
+
+[[generated]]
+id = "bgkNTd0u44GM-hiT4U5pu"
+uri = "file://artifacts/stockflow/public/images/banner-shipping.png"
+type = "image"
+title = "Carefully packaged order box"
+
+[[generated]]
+id = "ktncYvKcO3TeLiZyiRmT5"
+uri = "file://artifacts/stockflow/public/images/banner-collection.png"
+type = "image"
+title = "Curated lifestyle products collection"
+
+[[generated]]
+id = "HgVcdi2OmqENHkk9eqiMW"
+uri = "file://artifacts/stockflow/public/images/banner-storefront.png"
+type = "image"
+title = "Storefront window with plants"
+
+[[generated]]
+id = "rCv16Lxb4orCx6LGRUZJt"
+uri = "file://artifacts/stockflow/public/images/product-jacket.png"
+type = "image"
+title = "Beige French-style trench coat"
+
+[[generated]]
+id = "Q21Y8-WfmHvZs3uvzKDTB"
+uri = "file://artifacts/stockflow/public/images/product-sneakers.png"
+type = "image"
+title = "Minimalist white leather sneakers"
+
+[[generated]]
+id = "aY5QOggAV0ilDxWOLS0zH"
+uri = "file://artifacts/stockflow/public/images/product-bag.png"
+type = "image"
+title = "Brown leather messenger bag"
+
+[[generated]]
+id = "dQJaHrSuy1PoJ8fTgs1EU"
+uri = "file://artifacts/stockflow/public/images/product-watch.png"
+type = "image"
+title = "Minimalist wristwatch with brown strap"
+
+[[generated]]
+id = "--o0hyu1Qd63LiwaO7Vg_"
+uri = "file://artifacts/stockflow/public/images/product-headphones.png"
+type = "image"
+title = "Sleek black over-ear headphones"
+
+[[generated]]
+id = "fP_XvxEOIXZD1qMJhJJcU"
+uri = "file://artifacts/stockflow/public/images/product-tshirt.png"
+type = "image"
+title = "Folded navy cotton t-shirt"

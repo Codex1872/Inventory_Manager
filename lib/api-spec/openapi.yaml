@@ -1,0 +1,2108 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: StockFlow — stock management, storefront, social console
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: dashboard
+  - name: products
+  - name: categories
+  - name: suppliers
+  - name: locations
+  - name: stock
+  - name: movements
+  - name: orders
+  - name: tickets
+  - name: printers
+  - name: banners
+  - name: social
+  - name: storefront
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Dashboard headline KPIs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent-movements:
+    get:
+      operationId: getRecentMovements
+      tags: [dashboard]
+      summary: Most recent stock movements (last 12)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MovementWithRefs"
+
+  /dashboard/low-stock:
+    get:
+      operationId: getLowStockAlerts
+      tags: [dashboard]
+      summary: Variants at or below their threshold
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LowStockAlert"
+
+  /dashboard/best-sellers:
+    get:
+      operationId: getBestSellers
+      tags: [dashboard]
+      summary: Top products by total outbound quantity
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BestSeller"
+
+  /dashboard/stock-by-category:
+    get:
+      operationId: getStockByCategory
+      tags: [dashboard]
+      summary: Aggregate on-hand stock value grouped by category
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryStockBreakdown"
+
+  /dashboard/movement-trends:
+    get:
+      operationId: getMovementTrends
+      tags: [dashboard]
+      summary: Daily movement totals for the last 14 days
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MovementTrendPoint"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List products with filters
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: categoryId
+          schema:
+            type: integer
+        - in: query
+          name: visible
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductWithDetails"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductWithDetails"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductWithDetails"
+    patch:
+      operationId: updateProduct
+      tags: [products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductWithDetails"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /products/{id}/variants:
+    post:
+      operationId: createVariant
+      tags: [products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVariantInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variant"
+
+  /variants/{id}:
+    patch:
+      operationId: updateVariant
+      tags: [products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVariantInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variant"
+    delete:
+      operationId: deleteVariant
+      tags: [products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /suppliers:
+    get:
+      operationId: listSuppliers
+      tags: [suppliers]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+    post:
+      operationId: createSupplier
+      tags: [suppliers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSupplierInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+
+  /suppliers/{id}:
+    patch:
+      operationId: updateSupplier
+      tags: [suppliers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSupplierInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+    delete:
+      operationId: deleteSupplier
+      tags: [suppliers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+    post:
+      operationId: createLocation
+      tags: [locations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocationInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+
+  /locations/{id}:
+    delete:
+      operationId: deleteLocation
+      tags: [locations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /stock:
+    get:
+      operationId: listStockLevels
+      tags: [stock]
+      summary: Stock levels per variant per location
+      parameters:
+        - in: query
+          name: locationId
+          schema:
+            type: integer
+        - in: query
+          name: lowOnly
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockLevel"
+
+  /movements:
+    get:
+      operationId: listMovements
+      tags: [movements]
+      parameters:
+        - in: query
+          name: variantId
+          schema:
+            type: integer
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [in, out, transfer, adjust]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MovementWithRefs"
+    post:
+      operationId: createMovement
+      tags: [movements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMovementInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovementWithRefs"
+
+  /movements/scan:
+    post:
+      operationId: scanBarcode
+      tags: [movements]
+      summary: Resolve a barcode/SKU and (optionally) post a movement in the same call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResult"
+
+  /orders:
+    get:
+      operationId: listPurchaseOrders
+      tags: [orders]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PurchaseOrderWithRefs"
+    post:
+      operationId: createPurchaseOrder
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePurchaseOrderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseOrderWithRefs"
+
+  /orders/{id}/status:
+    patch:
+      operationId: updatePurchaseOrderStatus
+      tags: [orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePurchaseOrderStatusInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseOrderWithRefs"
+
+  /tickets/templates:
+    get:
+      operationId: listTicketTemplates
+      tags: [tickets]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TicketTemplate"
+    post:
+      operationId: createTicketTemplate
+      tags: [tickets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTicketTemplateInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketTemplate"
+
+  /tickets/templates/{id}:
+    patch:
+      operationId: updateTicketTemplate
+      tags: [tickets]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTicketTemplateInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketTemplate"
+    delete:
+      operationId: deleteTicketTemplate
+      tags: [tickets]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tickets/templates/{id}/preview:
+    post:
+      operationId: previewTicket
+      tags: [tickets]
+      summary: Render a template with provided variables
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketPreviewInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketPreview"
+
+  /printers:
+    get:
+      operationId: listPrinters
+      tags: [printers]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Printer"
+    post:
+      operationId: createPrinter
+      tags: [printers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePrinterInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Printer"
+
+  /printers/{id}:
+    delete:
+      operationId: deletePrinter
+      tags: [printers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /banners:
+    get:
+      operationId: listBanners
+      tags: [banners]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Banner"
+    post:
+      operationId: createBanner
+      tags: [banners]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBannerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Banner"
+
+  /banners/{id}:
+    delete:
+      operationId: deleteBanner
+      tags: [banners]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /social/accounts:
+    get:
+      operationId: listSocialAccounts
+      tags: [social]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialAccount"
+
+  /social/accounts/{id}/toggle:
+    patch:
+      operationId: toggleSocialAccount
+      tags: [social]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+
+  /social/posts:
+    get:
+      operationId: listSocialPosts
+      tags: [social]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, scheduled, published, failed]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialPost"
+    post:
+      operationId: createSocialPost
+      tags: [social]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSocialPostInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialPost"
+
+  /social/posts/{id}/publish:
+    post:
+      operationId: publishSocialPost
+      tags: [social]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialPost"
+
+  /social/inbox:
+    get:
+      operationId: listSocialMessages
+      tags: [social]
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialMessage"
+
+  /social/inbox/{id}/reply:
+    post:
+      operationId: replySocialMessage
+      tags: [social]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplyMessageInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialMessage"
+
+  /social/inbox/{id}/read:
+    patch:
+      operationId: markMessageRead
+      tags: [social]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialMessage"
+
+  /social/triggers:
+    get:
+      operationId: listSocialTriggers
+      tags: [social]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialTrigger"
+    post:
+      operationId: createSocialTrigger
+      tags: [social]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSocialTriggerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialTrigger"
+
+  /social/triggers/{id}:
+    delete:
+      operationId: deleteSocialTrigger
+      tags: [social]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /storefront/products:
+    get:
+      operationId: listStorefrontProducts
+      tags: [storefront]
+      summary: Public product catalog
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: categoryId
+          schema:
+            type: integer
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+        - in: query
+          name: inStockOnly
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StorefrontProduct"
+
+  /storefront/products/{id}:
+    get:
+      operationId: getStorefrontProduct
+      tags: [storefront]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontProductDetail"
+
+  /storefront/banners:
+    get:
+      operationId: listStorefrontBanners
+      tags: [storefront]
+      summary: Active promotional banners
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Banner"
+
+  /storefront/feed:
+    get:
+      operationId: getStorefrontSocialFeed
+      tags: [storefront]
+      summary: Latest published social posts for the public site
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialPost"
+
+  /storefront/contact:
+    post:
+      operationId: submitContactMessage
+      tags: [storefront]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactMessageInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactMessage"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalProducts:
+          type: integer
+        totalVariants:
+          type: integer
+        totalOnHand:
+          type: integer
+        lowStockCount:
+          type: integer
+        outOfStockCount:
+          type: integer
+        movementsToday:
+          type: integer
+        unreadMessages:
+          type: integer
+        scheduledPosts:
+          type: integer
+        inventoryValue:
+          type: number
+      required:
+        - totalProducts
+        - totalVariants
+        - totalOnHand
+        - lowStockCount
+        - outOfStockCount
+        - movementsToday
+        - unreadMessages
+        - scheduledPosts
+        - inventoryValue
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, slug, createdAt]
+
+    CreateCategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+      required: [name]
+
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        contactName:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        leadTimeDays:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, contactName, email, phone, leadTimeDays, notes, createdAt]
+
+    CreateSupplierInput:
+      type: object
+      properties:
+        name:
+          type: string
+        contactName:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        leadTimeDays:
+          type: integer
+        notes:
+          type: ["string", "null"]
+      required: [name, leadTimeDays]
+
+    UpdateSupplierInput:
+      type: object
+      properties:
+        name:
+          type: string
+        contactName:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        leadTimeDays:
+          type: integer
+        notes:
+          type: ["string", "null"]
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        zone:
+          type: ["string", "null"]
+        aisle:
+          type: ["string", "null"]
+        shelf:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, zone, aisle, shelf, createdAt]
+
+    CreateLocationInput:
+      type: object
+      properties:
+        name:
+          type: string
+        zone:
+          type: ["string", "null"]
+        aisle:
+          type: ["string", "null"]
+        shelf:
+          type: ["string", "null"]
+      required: [name]
+
+    Variant:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        sku:
+          type: string
+        barcode:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        threshold:
+          type: integer
+        onHand:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, productId, sku, barcode, size, color, threshold, onHand, createdAt]
+
+    CreateVariantInput:
+      type: object
+      properties:
+        sku:
+          type: string
+        barcode:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        threshold:
+          type: integer
+        initialQuantity:
+          type: integer
+        locationId:
+          type: ["integer", "null"]
+      required: [sku, threshold]
+
+    UpdateVariantInput:
+      type: object
+      properties:
+        sku:
+          type: string
+        barcode:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        threshold:
+          type: integer
+
+    ProductWithDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        reference:
+          type: string
+        description:
+          type: ["string", "null"]
+        priceHt:
+          type: number
+        vatRate:
+          type: number
+        priceTtc:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        gallery:
+          type: array
+          items:
+            type: string
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        supplierId:
+          type: ["integer", "null"]
+        supplierName:
+          type: ["string", "null"]
+        visibleOnStorefront:
+          type: boolean
+        updatedBy:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Variant"
+        totalOnHand:
+          type: integer
+      required:
+        - id
+        - name
+        - reference
+        - description
+        - priceHt
+        - vatRate
+        - priceTtc
+        - imageUrl
+        - gallery
+        - categoryId
+        - categoryName
+        - supplierId
+        - supplierName
+        - visibleOnStorefront
+        - updatedBy
+        - updatedAt
+        - createdAt
+        - variants
+        - totalOnHand
+
+    CreateProductInput:
+      type: object
+      properties:
+        name:
+          type: string
+        reference:
+          type: string
+        description:
+          type: ["string", "null"]
+        priceHt:
+          type: number
+        vatRate:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        gallery:
+          type: array
+          items:
+            type: string
+        categoryId:
+          type: ["integer", "null"]
+        supplierId:
+          type: ["integer", "null"]
+        visibleOnStorefront:
+          type: boolean
+        firstVariant:
+          $ref: "#/components/schemas/CreateVariantInput"
+      required: [name, reference, priceHt, vatRate]
+
+    UpdateProductInput:
+      type: object
+      properties:
+        name:
+          type: string
+        reference:
+          type: string
+        description:
+          type: ["string", "null"]
+        priceHt:
+          type: number
+        vatRate:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        gallery:
+          type: array
+          items:
+            type: string
+        categoryId:
+          type: ["integer", "null"]
+        supplierId:
+          type: ["integer", "null"]
+        visibleOnStorefront:
+          type: boolean
+
+    StockLevel:
+      type: object
+      properties:
+        variantId:
+          type: integer
+        sku:
+          type: string
+        productId:
+          type: integer
+        productName:
+          type: string
+        productImageUrl:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        locationId:
+          type: ["integer", "null"]
+        locationName:
+          type: ["string", "null"]
+        onHand:
+          type: integer
+        threshold:
+          type: integer
+      required:
+        - variantId
+        - sku
+        - productId
+        - productName
+        - productImageUrl
+        - size
+        - color
+        - locationId
+        - locationName
+        - onHand
+        - threshold
+
+    LowStockAlert:
+      type: object
+      properties:
+        variantId:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        sku:
+          type: string
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        onHand:
+          type: integer
+        threshold:
+          type: integer
+        productImageUrl:
+          type: ["string", "null"]
+      required:
+        - variantId
+        - productId
+        - productName
+        - sku
+        - size
+        - color
+        - onHand
+        - threshold
+        - productImageUrl
+
+    BestSeller:
+      type: object
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        productImageUrl:
+          type: ["string", "null"]
+        unitsSold:
+          type: integer
+        revenue:
+          type: number
+      required: [productId, productName, productImageUrl, unitsSold, revenue]
+
+    CategoryStockBreakdown:
+      type: object
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: string
+        totalUnits:
+          type: integer
+        totalValue:
+          type: number
+      required: [categoryId, categoryName, totalUnits, totalValue]
+
+    MovementTrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        inbound:
+          type: integer
+        outbound:
+          type: integer
+      required: [date, inbound, outbound]
+
+    MovementWithRefs:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [in, out, transfer, adjust]
+        variantId:
+          type: integer
+        sku:
+          type: string
+        productId:
+          type: integer
+        productName:
+          type: string
+        productImageUrl:
+          type: ["string", "null"]
+        quantity:
+          type: integer
+        fromLocationId:
+          type: ["integer", "null"]
+        fromLocationName:
+          type: ["string", "null"]
+        toLocationId:
+          type: ["integer", "null"]
+        toLocationName:
+          type: ["string", "null"]
+        operator:
+          type: string
+        reason:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - variantId
+        - sku
+        - productId
+        - productName
+        - productImageUrl
+        - quantity
+        - fromLocationId
+        - fromLocationName
+        - toLocationId
+        - toLocationName
+        - operator
+        - reason
+        - createdAt
+
+    CreateMovementInput:
+      type: object
+      properties:
+        variantId:
+          type: integer
+        type:
+          type: string
+          enum: [in, out, transfer, adjust]
+        quantity:
+          type: integer
+        fromLocationId:
+          type: ["integer", "null"]
+        toLocationId:
+          type: ["integer", "null"]
+        operator:
+          type: string
+        reason:
+          type: ["string", "null"]
+      required: [variantId, type, quantity, operator]
+
+    ScanInput:
+      type: object
+      properties:
+        code:
+          type: string
+        mode:
+          type: string
+          enum: [lookup, in, out, adjust]
+        quantity:
+          type: ["integer", "null"]
+        locationId:
+          type: ["integer", "null"]
+        operator:
+          type: ["string", "null"]
+      required: [code, mode]
+
+    ScanResult:
+      type: object
+      properties:
+        matched:
+          type: boolean
+        variant:
+          anyOf:
+            - $ref: "#/components/schemas/Variant"
+            - type: "null"
+        product:
+          anyOf:
+            - $ref: "#/components/schemas/ProductWithDetails"
+            - type: "null"
+        movement:
+          anyOf:
+            - $ref: "#/components/schemas/MovementWithRefs"
+            - type: "null"
+        message:
+          type: string
+      required: [matched, variant, product, movement, message]
+
+    PurchaseOrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        variantId:
+          type: integer
+        sku:
+          type: string
+        productName:
+          type: string
+        quantity:
+          type: integer
+        unitPriceHt:
+          type: number
+      required: [id, variantId, sku, productName, quantity, unitPriceHt]
+
+    PurchaseOrderWithRefs:
+      type: object
+      properties:
+        id:
+          type: integer
+        reference:
+          type: string
+        supplierId:
+          type: integer
+        supplierName:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, received, cancelled]
+        totalHt:
+          type: number
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        expectedAt:
+          type: ["string", "null"]
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseOrderItem"
+      required:
+        - id
+        - reference
+        - supplierId
+        - supplierName
+        - status
+        - totalHt
+        - notes
+        - createdAt
+        - expectedAt
+        - items
+
+    CreatePurchaseOrderItemInput:
+      type: object
+      properties:
+        variantId:
+          type: integer
+        quantity:
+          type: integer
+        unitPriceHt:
+          type: number
+      required: [variantId, quantity, unitPriceHt]
+
+    CreatePurchaseOrderInput:
+      type: object
+      properties:
+        supplierId:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        expectedAt:
+          type: ["string", "null"]
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreatePurchaseOrderItemInput"
+      required: [supplierId, items]
+
+    UpdatePurchaseOrderStatusInput:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, sent, received, cancelled]
+      required: [status]
+
+    TicketTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        width:
+          type: string
+          enum: ["58mm", "80mm"]
+        body:
+          type: string
+        kind:
+          type: string
+          enum: [movement, inventory, order]
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, width, body, kind, isDefault, createdAt]
+
+    CreateTicketTemplateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        width:
+          type: string
+          enum: ["58mm", "80mm"]
+        body:
+          type: string
+        kind:
+          type: string
+          enum: [movement, inventory, order]
+        isDefault:
+          type: boolean
+      required: [name, width, body, kind]
+
+    UpdateTicketTemplateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        width:
+          type: string
+          enum: ["58mm", "80mm"]
+        body:
+          type: string
+        kind:
+          type: string
+          enum: [movement, inventory, order]
+        isDefault:
+          type: boolean
+
+    TicketPreviewInput:
+      type: object
+      properties:
+        productName:
+          type: ["string", "null"]
+        sku:
+          type: ["string", "null"]
+        quantity:
+          type: ["integer", "null"]
+        total:
+          type: ["number", "null"]
+      additionalProperties: true
+
+    TicketPreview:
+      type: object
+      properties:
+        rendered:
+          type: string
+        width:
+          type: string
+      required: [rendered, width]
+
+    Printer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        connection:
+          type: string
+          enum: [network, bluetooth]
+        address:
+          type: string
+        width:
+          type: string
+          enum: ["58mm", "80mm"]
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, connection, address, width, isDefault, createdAt]
+
+    CreatePrinterInput:
+      type: object
+      properties:
+        name:
+          type: string
+        connection:
+          type: string
+          enum: [network, bluetooth]
+        address:
+          type: string
+        width:
+          type: string
+          enum: ["58mm", "80mm"]
+        isDefault:
+          type: boolean
+      required: [name, connection, address, width]
+
+    Banner:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subtitle:
+          type: ["string", "null"]
+        imageUrl:
+          type: string
+        linkUrl:
+          type: ["string", "null"]
+        startsAt:
+          type: ["string", "null"]
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, title, subtitle, imageUrl, linkUrl, startsAt, endsAt, active, createdAt]
+
+    CreateBannerInput:
+      type: object
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: ["string", "null"]
+        imageUrl:
+          type: string
+        linkUrl:
+          type: ["string", "null"]
+        startsAt:
+          type: ["string", "null"]
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        active:
+          type: boolean
+      required: [title, imageUrl]
+
+    SocialAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+          enum: [facebook, instagram, linkedin, tiktok]
+        handle:
+          type: string
+        connected:
+          type: boolean
+        followers:
+          type: integer
+        lastSyncedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [id, platform, handle, connected, followers, lastSyncedAt]
+
+    SocialPost:
+      type: object
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+          enum: [facebook, instagram, linkedin, tiktok]
+        message:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        productId:
+          type: ["integer", "null"]
+        productName:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, scheduled, published, failed]
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+        engagementCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - platform
+        - message
+        - imageUrl
+        - productId
+        - productName
+        - status
+        - scheduledFor
+        - publishedAt
+        - engagementCount
+        - createdAt
+
+    CreateSocialPostInput:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [facebook, instagram, linkedin, tiktok]
+        message:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        productId:
+          type: ["integer", "null"]
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+      required: [platform, message]
+
+    SocialMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+          enum: [facebook, instagram, linkedin, tiktok]
+        author:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        body:
+          type: string
+        kind:
+          type: string
+          enum: [dm, comment, mention]
+        unread:
+          type: boolean
+        reply:
+          type: ["string", "null"]
+        replyAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - platform
+        - author
+        - avatarUrl
+        - body
+        - kind
+        - unread
+        - reply
+        - replyAt
+        - createdAt
+
+    ReplyMessageInput:
+      type: object
+      properties:
+        reply:
+          type: string
+      required: [reply]
+
+    SocialTrigger:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        event:
+          type: string
+          enum: [new_product, low_stock, restock]
+        platforms:
+          type: array
+          items:
+            type: string
+            enum: [facebook, instagram, linkedin, tiktok]
+        template:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, event, platforms, template, active, createdAt]
+
+    CreateSocialTriggerInput:
+      type: object
+      properties:
+        name:
+          type: string
+        event:
+          type: string
+          enum: [new_product, low_stock, restock]
+        platforms:
+          type: array
+          items:
+            type: string
+            enum: [facebook, instagram, linkedin, tiktok]
+        template:
+          type: string
+        active:
+          type: boolean
+      required: [name, event, platforms, template]
+
+    StorefrontProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        reference:
+          type: string
+        description:
+          type: ["string", "null"]
+        priceTtc:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        categoryName:
+          type: ["string", "null"]
+        inStock:
+          type: boolean
+        totalOnHand:
+          type: integer
+      required: [id, name, reference, description, priceTtc, imageUrl, categoryName, inStock, totalOnHand]
+
+    StorefrontProductDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        reference:
+          type: string
+        description:
+          type: ["string", "null"]
+        priceHt:
+          type: number
+        priceTtc:
+          type: number
+        vatRate:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        gallery:
+          type: array
+          items:
+            type: string
+        categoryName:
+          type: ["string", "null"]
+        inStock:
+          type: boolean
+        totalOnHand:
+          type: integer
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Variant"
+      required:
+        - id
+        - name
+        - reference
+        - description
+        - priceHt
+        - priceTtc
+        - vatRate
+        - imageUrl
+        - gallery
+        - categoryName
+        - inStock
+        - totalOnHand
+        - variants
+
+    ContactMessageInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        message:
+          type: string
+      required: [name, email, message]
+
+    ContactMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, message, createdAt]
