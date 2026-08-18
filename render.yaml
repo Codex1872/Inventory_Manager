@@ -1,13 +1,15 @@
-services:
+databases:
   # ──────────────────────────────────────────────────────────────
   #  PostgreSQL Database (Free tier: 90 days, puis 1 GB)
   # ──────────────────────────────────────────────────────────────
-  - type: postgresql
-    name: inventory-db
+  - name: inventory-db
+    databaseName: inventory
+    user: postgres
     plan: free
     region: oregon
     ipAllowList: []
 
+services:
   # ──────────────────────────────────────────────────────────────
   #  API Server (Node.js/Express) — Web Service
   # ──────────────────────────────────────────────────────────────
