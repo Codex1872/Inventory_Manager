@@ -1,13 +1,14 @@
 databases:
   # ──────────────────────────────────────────────────────────────
-  #  PostgreSQL Database (Free tier: 90 days, puis 1 GB)
+  #  PostgreSQL Database (plan free = expire après une période
+  #  limitée, vérifie la durée actuelle dans la doc Render)
   # ──────────────────────────────────────────────────────────────
   - name: inventory-db
     databaseName: inventory
-    user: postgres
+    user: inventory_user        # ⚠️ "postgres" est réservé
     plan: free
     region: oregon
-    ipAllowList: []
+    ipAllowList: []             # aucune connexion externe
 
 services:
   # ──────────────────────────────────────────────────────────────
@@ -20,8 +21,6 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile.api
     dockerContext: .
-    # Le builder stage du Dockerfile compile le bundle (esbuild)
-    # Le runtime stage ne contient que le bundle compilé
     envVars:
       - key: NODE_ENV
         value: production
@@ -32,29 +31,26 @@ services:
           name: inventory-db
           property: connectionString
       - key: JWT_SECRET
-        generateValue: true  # Render génère un secret aléatoire
+        generateValue: true
       - key: ADMIN_EMAIL
         value: admin@votredomaine.com
       - key: ADMIN_PASSWORD
-        generateValue: true  # Mot de passe admin aléatoire
+        generateValue: true
       - key: ADMIN_NAME
         value: Admin
       - key: STRIPE_SECRET_KEY
-        sync: false  # À remplir manuellement dans le dashboard Render
+        sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      # ⚠️ Pas de disque sur le plan free : /app/uploads est éphémère
+      # et sera vidé à chaque redéploiement / redémarrage.
       - key: UPLOAD_DIR
-        value: /app/uploads
-    # Disque persistant pour les images uploadées (1 GB gratuit)
-    disk:
-      name: uploads
-      mountPath: /app/uploads
-      sizeGB: 1
+        value: /tmp/uploads
     healthCheckPath: /api/healthz
     autoDeploy: true
 
   # ──────────────────────────────────────────────────────────────
-  #  Frontend (React/Vite → Nginx) — Static Site
+  #  Frontend (React/Vite → Nginx)
   # ──────────────────────────────────────────────────────────────
   - type: web
     name: inventory-frontend
@@ -63,11 +59,9 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile.frontend
     dockerContext: .
-    buildCommand: ""
-    # Variables d'environnement injectées au BUILD (pas au runtime)
     envVars:
       - key: VITE_STRIPE_PUBLIC_KEY
-        sync: false  # À remplir manuellement (pk_test_... ou pk_live_)
+        sync: false
       - key: BASE_PATH
         value: /
       - key: PORT
@@ -75,8 +69,8 @@ services:
       - key: NODE_ENV
         value: production
       - key: API_URL
-        value: http://inventory-api:3000
-    # Le nginx.conf proxy /api vers l'API via le hostname interne Render
-    # Render injecte automatiquement la variable RENDER_EXTERNAL_HOSTNAME
-    # Mais pour le proxy interne entre services, on utilise le nom du service
+        fromService:
+          name: inventory-api
+          type: web
+          property: host      # hostname interne réel, pas "inventory-api"
     autoDeploy: true
