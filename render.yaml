@@ -1,19 +1,13 @@
 databases:
-  # ──────────────────────────────────────────────────────────────
-  #  PostgreSQL Database (plan free = expire après une période
-  #  limitée, vérifie la durée actuelle dans la doc Render)
-  # ──────────────────────────────────────────────────────────────
   - name: inventory-db
     databaseName: inventory
-    user: inventory_user        # ⚠️ "postgres" est réservé
+    user: inventory_user
     plan: free
     region: oregon
-    ipAllowList: []             # aucune connexion externe
+    ipAllowList: []
 
 services:
-  # ──────────────────────────────────────────────────────────────
-  #  API Server (Node.js/Express) — Web Service
-  # ──────────────────────────────────────────────────────────────
+  # ── API (Node/Express) ──────────────────────────────────────
   - type: web
     name: inventory-api
     plan: free
@@ -42,16 +36,13 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      # ⚠️ Pas de disque sur le plan free : /app/uploads est éphémère
-      # et sera vidé à chaque redéploiement / redémarrage.
+      # Éphémère : vidé à chaque redéploiement (pas de disque en free)
       - key: UPLOAD_DIR
         value: /tmp/uploads
     healthCheckPath: /api/healthz
     autoDeploy: true
 
-  # ──────────────────────────────────────────────────────────────
-  #  Frontend (React/Vite → Nginx)
-  # ──────────────────────────────────────────────────────────────
+  # ── Frontend (Vite → Nginx) ─────────────────────────────────
   - type: web
     name: inventory-frontend
     plan: free
@@ -60,17 +51,11 @@ services:
     dockerfilePath: ./Dockerfile.frontend
     dockerContext: .
     envVars:
-      - key: VITE_STRIPE_PUBLIC_KEY
-        sync: false
       - key: BASE_PATH
         value: /
-      - key: PORT
-        value: "80"
-      - key: NODE_ENV
-        value: production
-      - key: API_URL
-        fromService:
-          name: inventory-api
-          type: web
-          property: host      # hostname interne réel, pas "inventory-api"
+      - key: VITE_STRIPE_PUBLIC_KEY
+        sync: false
+      # Origine complète AVEC schéma, ex: https://inventory-api-xxxx.onrender.com
+      - key: API_ORIGIN
+        sync: false
     autoDeploy: true

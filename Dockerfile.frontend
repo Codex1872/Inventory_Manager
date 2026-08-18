@@ -17,25 +17,22 @@ COPY artifacts/stockflow/  artifacts/stockflow/
 
 RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
-# VITE_STRIPE_PUBLIC_KEY est injecté au build via --build-arg Docker
+# Render passe automatiquement les env vars du service en --build-arg
 ARG VITE_STRIPE_PUBLIC_KEY=pk_test_placeholder
+ARG BASE_PATH=/
+
 ENV NODE_ENV=production \
-    PORT=3000 \
-    BASE_PATH=/ \
+    BASE_PATH=${BASE_PATH} \
     VITE_STRIPE_PUBLIC_KEY=${VITE_STRIPE_PUBLIC_KEY}
 
 RUN pnpm --filter @workspace/stockflow run build
 
-# ─── Runtime Nginx ────────────────────────────────────────────────────────────
+# ─── Runtime Nginx ───────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS runtime
-
-# Installer envsubst pour substituer les variables d'env dans nginx.conf
-RUN apk add --no-cache gettext
 
 COPY --from=builder /app/artifacts/stockflow/dist/public /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Script d'entrée pour substituer API_URL et démarrer nginx
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

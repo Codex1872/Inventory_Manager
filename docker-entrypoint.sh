@@ -1,12 +1,17 @@
 #!/bin/sh
-# docker-entrypoint.sh — Substitue les variables d'env dans nginx.conf et démarre nginx
+set -e
 
-# API_URL par défaut pour le développement local (docker-compose)
-# En production sur Render, cette variable sera définie dans render.yaml
-export API_URL=${API_URL:-http://api:3000}
+: "${API_ORIGIN:?API_ORIGIN is required (ex: https://inventory-api-xxxx.onrender.com)}"
 
-# Substitution des variables dans le template nginx
-envsubst '${API_URL}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+API_ORIGIN="${API_ORIGIN%/}"
+export API_ORIGIN
 
-# Démarrer nginx
+envsubst '${API_ORIGIN}' \
+  < /etc/nginx/templates/default.conf.template \
+  > /etc/nginx/conf.d/default.conf
+
+echo "── API_ORIGIN=[$API_ORIGIN]"
+grep -n "proxy_pass" /etc/nginx/conf.d/default.conf
+
+nginx -t
 exec "$@"
