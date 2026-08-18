@@ -10,10 +10,22 @@ import { getOrCreateCart } from "./cart";
 
 const router: IRouter = Router();
 
-function stripe(): Stripe {
+let stripeClient: Stripe | null = null;
+function getStripe(): Stripe | null {
+  if (stripeClient) return stripeClient;
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("STRIPE_SECRET_KEY env var is required");
-  return new Stripe(key, { apiVersion: "2025-01-27.acacia" });
+  if (!key) return null;
+  stripeClient = new Stripe(key, { apiVersion: "2025-01-27.acacia" });
+  return stripeClient;
+}
+
+function requireStripe(res: any): Stripe | null {
+  const client = getStripe();
+  if (!client) {
+    res.status(503).json({ error: "Paiement Stripe non configuré (STRIPE_SECRET_KEY manquant)" });
+    return null;
+  }
+  return client;
 }
 
 // ── POST /checkout/intent ── crée un PaymentIntent Stripe ─────────────────
@@ -51,7 +63,9 @@ router.post("/checkout/intent", requireAuth, async (req, res): Promise<void> => 
     res.status(400).json({ error: "Montant trop faible" }); return;
   }
 
-  const intent = await stripe().paymentIntents.create({
+  const client = requireStripe(res);
+  if (!client) return;
+  const intent = await client.paymentIntents.create({
     amount:   totalCents,
     currency: "eur",
     metadata: { userId: String(userId), cartId: String(cart.id) },
@@ -74,7 +88,9 @@ router.post("/checkout/confirm", requireAuth, async (req, res): Promise<void> =>
   }
 
   // Vérifier le statut Stripe
-  const intent = await stripe().paymentIntents.retrieve(paymentIntentId);
+  const client = requireStripe(res);
+  if (!client) return;
+  const intent = await client.paymentIntents.retrieve(paymentIntentId);
   if (intent.status !== "succeeded") {
     res.status(400).json({ error: `Paiement non abouti (statut: ${intent.status})` }); return;
   }
@@ -217,8 +233,10 @@ router.post("/webhook/stripe",
     if (!secret) { res.json({ received: true }); return; }
 
     let event: Stripe.Event;
+    const client = getStripe();
+    if (!client) { res.json({ received: true }); return; }
     try {
-      event = stripe().webhooks.constructEvent(
+      event = client.webhooks.constructEvent(
         (req as unknown as { rawBody?: Buffer }).rawBody ?? req.body,
         sig, secret,
       );
